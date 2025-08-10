@@ -38,28 +38,23 @@ public class Merger_GUI {
         file1_SHA256.setFont(font);
         file1_SHA256.setBorder(border);
         container.add(file1_SHA256);
-        button1.addActionListener( (ActionEvent e) -> {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        file1_SHA256.setText("正在计算文件哈希值...");
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                        log.info(ex.getMessage());
-                    }
-                    try {
-                        String file1_SHA256_value = SHA256_Calculator.getFileSHA256(propertiesReader.ReadProperties("file1_name"));
-                        file1_SHA256.setText(file1_SHA256_value);
-                    } catch (NoSuchAlgorithmException ex) {
-                        log.info(ex.getMessage());
-                        file1_SHA256.setText("未知错误");
-                    }
-                    button1_clicked = true;
-                    log.info("按钮1已被点击");
-                }
-            });
-        });
+        button1.addActionListener( (ActionEvent e) -> executor.execute(() -> {
+            try {
+                file1_SHA256.setText("正在计算文件哈希值...");
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                log.info(ex.getMessage());
+            }
+            try {
+                String file1_SHA256_value = SHA256_Calculator.getFileSHA256(propertiesReader.ReadProperties("file1_name"));
+                file1_SHA256.setText(file1_SHA256_value);
+            } catch (NoSuchAlgorithmException ex) {
+                log.info(ex.getMessage());
+                file1_SHA256.setText("未知错误");
+            }
+            button1_clicked = true;
+            log.info("按钮1已被点击");
+        }));
 
         JButton button2 = new JButton(propertiesReader.ReadProperties("button2_text"));
         button2.setFont(font);
