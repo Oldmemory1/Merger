@@ -208,6 +208,7 @@ public class MergerGUI {
                             }
                         }
                     }
+                    new AlertGUI(frame,"信息","合并完成");
                     return "合并完成";
                 } catch (IOException e) {
                     log.info(e.getMessage());
