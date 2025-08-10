@@ -9,6 +9,7 @@ import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 @Log
 public class MergerGUI {
@@ -117,6 +118,16 @@ public class MergerGUI {
         button5.setFocusPainted(false);
         container.add(button5);
 
+        JLabel currentStatus = new JLabel("等待合并");
+        currentStatus.setBounds(375,425,600,50);
+        currentStatus.setFont(labelFont);
+        currentStatus.setBorder(border);
+        container.add(currentStatus);
+
+        button5.addActionListener(e -> {
+            mergeBinaryFiles(outputFile, propertiesReader, currentStatus, () -> log.info("合并结束"));
+        });
+
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setLayout(null);
         frame.setBackground(Color.WHITE);
@@ -159,25 +170,49 @@ public class MergerGUI {
         swingWorker.execute();
     }
 
-    private void mergeBinaryFiles(String outputFilePath,PropertiesReader propertiesReader){
+    private void mergeBinaryFiles(String outputFilePath,PropertiesReader propertiesReader,JLabel label,Runnable afterTask) {
+        label.setText("合并中...请勿退出程序");
         //合并顺序 file1 file2 file3
-        String file1 = propertiesReader.ReadProperties("file1_name");
-        String file2 = propertiesReader.ReadProperties("file2_name");
-        String file3 = propertiesReader.ReadProperties("file3_name");
-        File file = new File(outputFilePath);
-        List<String> inputFiles = Arrays.asList(file1, file2, file3);
-        try (OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(outputFilePath))) {
-            byte[] buffer =new byte[8192];
-            for(String inputFile : inputFiles){
-                try(InputStream inputStream = new BufferedInputStream(new FileInputStream(inputFile))){
-                    int bytesRead;
-                    while ((bytesRead = inputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
+        SwingWorker<String,Void> swingWorker = new SwingWorker<>() {
+            @Override
+            protected String doInBackground() {
+                String file1 = propertiesReader.ReadProperties("file1_name");
+                String file2 = propertiesReader.ReadProperties("file2_name");
+                String file3 = propertiesReader.ReadProperties("file3_name");
+                log.info(outputFilePath);
+                List<String> inputFiles = Arrays.asList(file1, file2, file3);
+                try (OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(outputFilePath))) {
+                    byte[] buffer =new byte[8192];
+                    for(String inputFile : inputFiles){
+                        try(InputStream inputStream = new BufferedInputStream(new FileInputStream(inputFile))){
+                            int bytesRead;
+                            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, bytesRead);
+                            }
+                        }
                     }
+                    return "合并完成";
+                } catch (IOException e) {
+                    log.info(e.getMessage());
+                    return "合并失败";
                 }
             }
-        } catch (IOException e) {
-            log.info(e.getMessage());
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    label.setText(get());
+                } catch (InterruptedException | ExecutionException e) {
+                    log.info(e.getMessage());
+                }
+                if (afterTask != null) {
+                    afterTask.run();
+                }
+            }
+        };
+        swingWorker.execute();
+
+
+
     }
 }
