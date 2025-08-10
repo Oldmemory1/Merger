@@ -125,7 +125,11 @@ public class MergerGUI {
         container.add(currentStatus);
 
         button5.addActionListener(e -> {
-            mergeBinaryFiles(outputFile, propertiesReader, currentStatus, () -> log.info("合并结束"));
+            if(button1Clicked && button2Clicked && button3Clicked && button4Clicked){
+                mergeBinaryFiles(outputFile, propertiesReader, currentStatus, () -> log.info("合并结束"));
+            }else{
+                alertWhenNotFitMergeRequirements(currentStatus, () -> log.info("没有检查文件哈希或者输出地址为空"));
+            }
         });
 
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -211,8 +215,9 @@ public class MergerGUI {
             }
         };
         swingWorker.execute();
-
-
+    }
+    private void alertWhenNotFitMergeRequirements(JLabel label,Runnable afterTask) {
+        //不符合合并条件
 
     }
 }
