@@ -5,7 +5,10 @@ import lombok.extern.java.Log;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
+import java.io.*;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.List;
 
 @Log
 public class MergerGUI {
@@ -13,9 +16,11 @@ public class MergerGUI {
     private final Font mainFont = new Font("微软雅黑", Font.PLAIN,16);
     private final PropertiesReader propertiesReader=new PropertiesReader("settings.properties");
     private final Font labelFont = new Font("微软雅黑", Font.PLAIN,14);
-    private boolean button1_clicked = false;
-    private boolean button2_clicked = false;
-    private boolean button3_clicked = false;
+    private boolean button1Clicked = false;
+    private boolean button2Clicked = false;
+    private boolean button3Clicked = false;
+    private boolean button4Clicked = false;
+    private String outputFile = null;
     public MergerGUI(String Title) {
         JFrame frame =new JFrame(Title);
         Container container = frame.getContentPane();
@@ -39,7 +44,7 @@ public class MergerGUI {
         container.add(file1_SHA256);
 
         button1.addActionListener(e -> startSHA256Task(file1_SHA256, "file1_name", () -> {
-            button1_clicked = true;
+            button1Clicked = true;
             log.info("按钮1已被点击");
         }));
 
@@ -56,7 +61,7 @@ public class MergerGUI {
         container.add(file2_SHA256);
 
         button2.addActionListener(e -> startSHA256Task(file2_SHA256, "file2_name", () -> {
-            button2_clicked = true;
+            button2Clicked = true;
             log.info("按钮2已被点击");
         }));
 
@@ -73,10 +78,44 @@ public class MergerGUI {
         container.add(file3_SHA256);
 
         button3.addActionListener(e -> startSHA256Task(file3_SHA256, "file3_name", () -> {
-            button3_clicked = true;
+            button3Clicked = true;
             log.info("按钮3已被点击");
-        }));
+        }
+        ));
 
+        JButton button4 = new JButton("选择输出的文件地址");
+        button4.setFont(mainFont);
+        button4.setBounds(50,350,300,50);
+        button4.setFocusPainted(false);
+        container.add(button4);
+
+        JLabel output_file_path = new JLabel("Output File Path");
+        output_file_path.setBounds(375,350,600,50);
+        output_file_path.setFont(labelFont);
+        output_file_path.setBorder(border);
+        container.add(output_file_path);
+
+        button4.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            int i = fileChooser.showOpenDialog(frame.getContentPane());
+            if (i == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                String s = selectedFile.getAbsolutePath();
+                outputFile = s+"\\"+propertiesReader.ReadProperties("output_file_name");
+                log.info("选定文件路径:"+selectedFile.getAbsolutePath());
+                log.info("选定文件路径"+outputFile);
+                button4Clicked = true;
+                log.info("按钮4已被点击");
+                output_file_path.setText(outputFile);
+            }
+        });
+
+        JButton button5 =new JButton("开始合并");
+        button5.setFont(mainFont);
+        button5.setBounds(50,425,300,50);
+        button5.setFocusPainted(false);
+        container.add(button5);
 
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setLayout(null);
@@ -84,6 +123,9 @@ public class MergerGUI {
         frame.setVisible(true);
         frame.setSize(1200, 800);
     }
+
+
+
     private void startSHA256Task(JLabel label, String fileKey, Runnable afterTask) {
         label.setText("正在计算文件哈希值...");
         SwingWorker<String,Void> swingWorker = new SwingWorker<>() {
@@ -106,7 +148,7 @@ public class MergerGUI {
                 try {
                     label.setText(get());
                 } catch (Exception e) {
-                    label.setText("未知错误");
+                    label.setText("找不到目录下的该文件:"+propertiesReader.ReadProperties(fileKey));
                     log.info(e.getMessage());
                 }
                 if (afterTask != null) {
@@ -115,5 +157,27 @@ public class MergerGUI {
             }
         };
         swingWorker.execute();
+    }
+
+    private void mergeBinaryFiles(String outputFilePath,PropertiesReader propertiesReader){
+        //合并顺序 file1 file2 file3
+        String file1 = propertiesReader.ReadProperties("file1_name");
+        String file2 = propertiesReader.ReadProperties("file2_name");
+        String file3 = propertiesReader.ReadProperties("file3_name");
+        File file = new File(outputFilePath);
+        List<String> inputFiles = Arrays.asList(file1, file2, file3);
+        try (OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(outputFilePath))) {
+            byte[] buffer =new byte[8192];
+            for(String inputFile : inputFiles){
+                try(InputStream inputStream = new BufferedInputStream(new FileInputStream(inputFile))){
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+                        outputStream.write(buffer, 0, bytesRead);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            log.info(e.getMessage());
+        }
     }
 }
