@@ -8,7 +8,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 @Log
 public class SHA256Calculator {
-    public static String getFileSHA256(String filePath) throws NoSuchAlgorithmException {
+    public static String getFileSHA256(String filePath) throws NoSuchAlgorithmException, IOException {
         // 创建 SHA-256 摘要计算器
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
@@ -20,7 +20,7 @@ public class SHA256Calculator {
                 digest.update(buffer, 0, bytesRead);
             }
         } catch (IOException e) {
-            log.info(e.getMessage());
+            throw new IOException(e.getMessage());
         }
 
         // 获取最终的哈希值（字节数组）

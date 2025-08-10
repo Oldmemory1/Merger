@@ -15,7 +15,7 @@ public class AlertGUI {
         Container container = dialog.getContentPane();
 
         JLabel label1 = new JLabel(information);
-        label1.setBounds(50, 50, 200, 50);
+        label1.setBounds(50, 50, 400, 50);
         label1.setFont(mainFont);
         container.add(label1);
 

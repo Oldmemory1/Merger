@@ -44,7 +44,7 @@ public class MergerGUI {
         file1_SHA256.setBorder(border);
         container.add(file1_SHA256);
 
-        button1.addActionListener(e -> startSHA256Task(file1_SHA256, "file1_name", () -> {
+        button1.addActionListener(e -> startSHA256Task(frame,file1_SHA256, "file1_name", () -> {
             button1Clicked = true;
             log.info("按钮1已被点击");
         }));
@@ -61,7 +61,7 @@ public class MergerGUI {
         file2_SHA256.setBorder(border);
         container.add(file2_SHA256);
 
-        button2.addActionListener(e -> startSHA256Task(file2_SHA256, "file2_name", () -> {
+        button2.addActionListener(e -> startSHA256Task(frame,file2_SHA256, "file2_name", () -> {
             button2Clicked = true;
             log.info("按钮2已被点击");
         }));
@@ -78,7 +78,7 @@ public class MergerGUI {
         file3_SHA256.setBorder(border);
         container.add(file3_SHA256);
 
-        button3.addActionListener(e -> startSHA256Task(file3_SHA256, "file3_name", () -> {
+        button3.addActionListener(e -> startSHA256Task(frame,file3_SHA256, "file3_name", () -> {
             button3Clicked = true;
             log.info("按钮3已被点击");
         }
@@ -90,7 +90,7 @@ public class MergerGUI {
         button4.setFocusPainted(false);
         container.add(button4);
 
-        JLabel output_file_path = new JLabel("Output File Path");
+        JLabel output_file_path = new JLabel("请选择输出的文件地址");
         output_file_path.setBounds(375,350,600,50);
         output_file_path.setFont(labelFont);
         output_file_path.setBorder(border);
@@ -126,11 +126,18 @@ public class MergerGUI {
 
         button5.addActionListener(e -> {
             if(button1Clicked && button2Clicked && button3Clicked && button4Clicked){
-                mergeBinaryFiles(outputFile, propertiesReader, currentStatus, () -> log.info("合并结束"));
+                mergeBinaryFiles(frame,outputFile, propertiesReader, currentStatus, () -> log.info("合并结束"));
             }else{
-                alertWhenNotFitMergeRequirements(currentStatus, () -> log.info("没有检查文件哈希或者输出地址为空"));
+               new AlertGUI(frame,"警告","您没有点击按钮校验文件的哈希值或未选择输出路径");
             }
         });
+
+        JButton exitButton = new JButton("退出程序");
+        exitButton.setFont(mainFont);
+        exitButton.setBounds(50,500,300,50);
+        exitButton.setFocusPainted(false);
+        container.add(exitButton);
+        exitButton.addActionListener(e -> System.exit(0));
 
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setLayout(null);
@@ -141,7 +148,7 @@ public class MergerGUI {
 
 
 
-    private void startSHA256Task(JLabel label, String fileKey, Runnable afterTask) {
+    private void startSHA256Task(Frame frame,JLabel label, String fileKey, Runnable afterTask) {
         label.setText("正在计算文件哈希值...");
         SwingWorker<String,Void> swingWorker = new SwingWorker<>() {
             @Override
@@ -151,10 +158,16 @@ public class MergerGUI {
                     return SHA256Calculator.getFileSHA256(propertiesReader.ReadProperties(fileKey));
                 } catch (NoSuchAlgorithmException e) {
                     log.info(e.getMessage());
+                    new AlertGUI(frame,"警告","发生了未知错误");
                     return "未知错误";
                 } catch (InterruptedException e) {
                     log.info(e.getMessage());
+                    new AlertGUI(frame,"警告","任务被中断");
                     return "任务被中断";
+                } catch (IOException e) {
+                    log.info(e.getMessage());
+                    new AlertGUI(frame,"警告","找不到对应的文件:"+propertiesReader.ReadProperties(fileKey));
+                    return "找不到文件";
                 }
             }
 
@@ -163,7 +176,7 @@ public class MergerGUI {
                 try {
                     label.setText(get());
                 } catch (Exception e) {
-                    label.setText("找不到目录下的该文件:"+propertiesReader.ReadProperties(fileKey));
+                    label.setText("发生了未知错误");
                     log.info(e.getMessage());
                 }
                 if (afterTask != null) {
@@ -174,7 +187,7 @@ public class MergerGUI {
         swingWorker.execute();
     }
 
-    private void mergeBinaryFiles(String outputFilePath,PropertiesReader propertiesReader,JLabel label,Runnable afterTask) {
+    private void mergeBinaryFiles(Frame frame,String outputFilePath,PropertiesReader propertiesReader,JLabel label,Runnable afterTask) {
         label.setText("合并中...请勿退出程序");
         //合并顺序 file1 file2 file3
         SwingWorker<String,Void> swingWorker = new SwingWorker<>() {
@@ -198,6 +211,7 @@ public class MergerGUI {
                     return "合并完成";
                 } catch (IOException e) {
                     log.info(e.getMessage());
+                    new AlertGUI(frame,"错误","合并失败,请去对应目录删除错误的文件");
                     return "合并失败";
                 }
             }
@@ -206,7 +220,7 @@ public class MergerGUI {
             protected void done() {
                 try {
                     label.setText(get());
-                } catch (InterruptedException | ExecutionException e) {
+                } catch (Exception e) {
                     log.info(e.getMessage());
                 }
                 if (afterTask != null) {
@@ -216,8 +230,5 @@ public class MergerGUI {
         };
         swingWorker.execute();
     }
-    private void alertWhenNotFitMergeRequirements(JLabel label,Runnable afterTask) {
-        //不符合合并条件
 
-    }
 }
