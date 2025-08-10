@@ -5,14 +5,10 @@ import lombok.extern.java.Log;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+
 @Log
 public class MergerGUI {
-    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(4, 4, 5, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2), r -> new Thread(r, "线程:" + Thread.currentThread().getName()));
     private final Border border = BorderFactory.createLineBorder(Color.BLACK, 1);
     private final Font mainFont = new Font("微软雅黑", Font.PLAIN,16);
     private final PropertiesReader propertiesReader=new PropertiesReader("settings.properties");
@@ -42,20 +38,7 @@ public class MergerGUI {
         file1_SHA256.setBorder(border);
         container.add(file1_SHA256);
 
-        button1.addActionListener( (ActionEvent e) -> executor.execute(() -> {
-            try {
-                file1_SHA256.setText("正在计算文件哈希值...");
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                log.info(ex.getMessage());
-            }
-            try {
-                String file1_SHA256_value = SHA256Calculator.getFileSHA256(propertiesReader.ReadProperties("file1_name"));
-                file1_SHA256.setText(file1_SHA256_value);
-            } catch (NoSuchAlgorithmException ex) {
-                log.info(ex.getMessage());
-                file1_SHA256.setText("未知错误");
-            }
+        button1.addActionListener(e -> startSHA256Task(file1_SHA256, "file1_name", () -> {
             button1_clicked = true;
             log.info("按钮1已被点击");
         }));
@@ -72,20 +55,7 @@ public class MergerGUI {
         file2_SHA256.setBorder(border);
         container.add(file2_SHA256);
 
-        button2.addActionListener( (ActionEvent e) -> executor.execute(() -> {
-            try {
-                file2_SHA256.setText("正在计算文件哈希值...");
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                log.info(ex.getMessage());
-            }
-            try {
-                String file2_SHA256_value = SHA256Calculator.getFileSHA256(propertiesReader.ReadProperties("file2_name"));
-                file2_SHA256.setText(file2_SHA256_value);
-            } catch (NoSuchAlgorithmException ex) {
-                log.info(ex.getMessage());
-                file2_SHA256.setText("未知错误");
-            }
+        button2.addActionListener(e -> startSHA256Task(file2_SHA256, "file2_name", () -> {
             button2_clicked = true;
             log.info("按钮2已被点击");
         }));
@@ -102,20 +72,7 @@ public class MergerGUI {
         file3_SHA256.setBorder(border);
         container.add(file3_SHA256);
 
-        button3.addActionListener( (ActionEvent e) -> executor.execute(() -> {
-            try {
-                file3_SHA256.setText("正在计算文件哈希值...");
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                log.info(ex.getMessage());
-            }
-            try {
-                String file3_SHA256_value = SHA256Calculator.getFileSHA256(propertiesReader.ReadProperties("file3_name"));
-                file3_SHA256.setText(file3_SHA256_value);
-            } catch (NoSuchAlgorithmException ex) {
-                log.info(ex.getMessage());
-                file3_SHA256.setText("未知错误");
-            }
+        button3.addActionListener(e -> startSHA256Task(file3_SHA256, "file3_name", () -> {
             button3_clicked = true;
             log.info("按钮3已被点击");
         }));
@@ -126,5 +83,37 @@ public class MergerGUI {
         frame.setBackground(Color.WHITE);
         frame.setVisible(true);
         frame.setSize(1200, 800);
+    }
+    private void startSHA256Task(JLabel label, String fileKey, Runnable afterTask) {
+        label.setText("正在计算文件哈希值...");
+        SwingWorker<String,Void> swingWorker = new SwingWorker<>() {
+            @Override
+            protected String doInBackground() {
+                try {
+                    Thread.sleep(1000); // 模拟耗时
+                    return SHA256Calculator.getFileSHA256(propertiesReader.ReadProperties(fileKey));
+                } catch (NoSuchAlgorithmException e) {
+                    log.info(e.getMessage());
+                    return "未知错误";
+                } catch (InterruptedException e) {
+                    log.info(e.getMessage());
+                    return "任务被中断";
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    label.setText(get());
+                } catch (Exception e) {
+                    label.setText("未知错误");
+                    log.info(e.getMessage());
+                }
+                if (afterTask != null) {
+                    afterTask.run();
+                }
+            }
+        };
+        swingWorker.execute();
     }
 }
