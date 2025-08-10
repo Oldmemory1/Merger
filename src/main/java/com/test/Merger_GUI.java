@@ -16,6 +16,7 @@ public class Merger_GUI {
     private final Border border = BorderFactory.createLineBorder(Color.BLACK, 1);
     private final Font font = new Font("微软雅黑", Font.PLAIN,16);
     private final PropertiesReader propertiesReader=new PropertiesReader("settings.properties");
+    private boolean button1_clicked = false;
     public Merger_GUI(String Title) {
         JFrame frame =new JFrame(Title);
         Container container = frame.getContentPane();
@@ -54,6 +55,8 @@ public class Merger_GUI {
                         log.info(ex.getMessage());
                         file1_SHA256.setText("未知错误");
                     }
+                    button1_clicked = true;
+                    log.info("按钮1已被点击");
                 }
             });
         });
