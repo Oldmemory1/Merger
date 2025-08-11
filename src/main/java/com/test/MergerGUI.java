@@ -212,7 +212,13 @@ public class MergerGUI {
                     return "合并完成";
                 } catch (IOException e) {
                     log.info(e.getMessage());
-                    new AlertGUI(frame,"错误","合并失败,请去对应目录删除错误的文件");
+                    new AlertGUI(frame,"错误","合并失败,正在删除对应目录下错误的文件");
+                    File f = new File(outputFilePath);
+                    if(f.exists()){
+                        if(f.delete()){
+                            new AlertGUI(frame,"信息","已删除错误的文件");
+                        }
+                    }
                     return "合并失败";
                 }
             }
